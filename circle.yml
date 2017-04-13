@@ -20,6 +20,7 @@ test:
     - cd src/ && make build
   post:
     - git submodule init
+    - rm -r src/_site/
     - git submodule update
     - cd src/_site/ && git checkout master && cd .. && make build
 
