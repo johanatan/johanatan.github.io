@@ -1,7 +1,7 @@
 general:
   branches:
     only:
-      - hakyll
+      - master
 
 dependencies:
   cache_directories:
@@ -19,22 +19,17 @@ dependencies:
 test:
   override:
     - cd src/ && make build
-  post:
-    - git submodule init
-    - rm -r src/_site/
-    - git submodule update
-    - cd src/_site/ && git checkout master && cd .. && make build
 
 deployment:
   production:
-    branch: hakyll
+    branch: master
     commands:
-      - git config --global user.email circleci@circleci
+      - cd src/ && find .. -type d -maxdepth 1 | grep -v .git | grep -v ../src | grep -v ^\.\.$ | xargs rm -r
+      - cd src/ && find .. -type f -maxdepth 1 | grep -v .git | grep -v circle\.yml | xargs rm
+      - git config --global user.email circleci@circleci.com
       - git config --global user.name CircleCI
-      - cd src/_site/ && git checkout master && git status
-      - cd src/_site/ && git add --all
-      - cd src/_site/ && git commit -m "Update (`date '+%F %T %Z'`) [ci skip]"
-      - cd src/_site/ && git push origin master
-      - git add src/_site/
-      - git commit -m "Update _site (`date '+%F %T %Z'`) [ci skip]"
-      - git push origin hakyll
+      - cd src/ && make build
+      - cd src/ && cp -a _site/ ..
+      - git add -u
+      - git commit -m "Update (`date '+%F %T %Z'`) [ci skip]"
+      - git push
