@@ -31,7 +31,7 @@ deployment:
     commands:
       - git config --global user.email circleci@circleci
       - git config --global user.name CircleCI
-      - cd src/_site/ && git status
+      - cd src/_site/ && ls && git status
       - cd src/_site/ && git add --all
       - cd src/_site/ && git commit -m "Update (`date '+%F %T %Z'`) [ci skip]"
       - cd src/_site/ && git push origin master
