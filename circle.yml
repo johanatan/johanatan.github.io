@@ -1,3 +1,8 @@
+general:
+  branches:
+    only:
+      - hakyll
+
 dependencies:
   cache_directories:
     - "~/.stack"
