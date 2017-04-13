@@ -3,7 +3,7 @@
 clean:
 	stack exec site clean
 
-build: clean
+build:
 	stack build
 	stack exec site rebuild
 
