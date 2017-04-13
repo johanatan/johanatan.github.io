@@ -17,7 +17,7 @@ dependencies:
 
 test:
   override:
-    - cd src/ && stack build
+    - cd src/ && make build
   post:
     - git submodule init
     - git submodule update
