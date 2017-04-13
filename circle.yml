@@ -13,11 +13,11 @@ dependencies:
     - sudo mv /tmp/stack /usr/bin/stack
   override:
     - stack setup
-    - cd src/ && make build
+    - cd src/ && stack build
 
 test:
   override:
-    - cd src/ && make build
+    - cd src/ && stack build
   post:
     - git submodule init
     - git submodule update
