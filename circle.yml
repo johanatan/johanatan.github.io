@@ -13,6 +13,7 @@ dependencies:
     - sudo mv /tmp/stack /usr/bin/stack
   override:
     - stack setup
+    - cd src/ && make build
 
 test:
   override:
