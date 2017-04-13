@@ -1,6 +1,6 @@
 ---
 title: S.P.Q.R.
-description: Ess Pee Que Are
+description: Ess Pee Queue Are
 ---
 
 Mauris in lorem nisl. Maecenas tempus facilisis ante, eget viverra nisl
