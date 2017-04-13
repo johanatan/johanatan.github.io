@@ -1,6 +1,7 @@
 dependencies:
   cache_directories:
     - "~/.stack"
+    - "src/.stack-work"
   pre:
     - wget https://github.com/commercialhaskell/stack/releases/download/v1.4.0/stack-1.4.0-linux-x86_64.tar.gz -O /tmp/stack.gz
     - gunzip /tmp/stack.gz && chmod +x /tmp/stack
