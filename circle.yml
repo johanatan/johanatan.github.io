@@ -1,0 +1,36 @@
+machine:
+  ghc:
+    version: 8.0.2
+
+dependencies:
+  cache_directories:
+    - "~/.stack"
+  pre:
+    - wget https://github.com/commercialhaskell/stack/releases/download/v0.1.4.0/stack-0.1.4.0-x86_64-linux.gz -O /tmp/stack.gz
+    - gunzip /tmp/stack.gz && chmod +x /tmp/stack
+    - sudo mv /tmp/stack /usr/bin/stack
+  override:
+    - stack setup
+    - stack build
+
+test:
+  override:
+    - cd src/ && stack build
+  post:
+    - git submodule init
+    - git submodule update
+    - cd src/_site/ && git checkout master && cd .. && make build
+
+deployment:
+  production:
+    branch: hakyll
+    commands:
+      - git config --global user.email circleci@circleci
+      - git config --global user.name CircleCI
+      - cd src/_site/ && git status
+      - cd src/_site/ && git add --all
+      - cd src/_site/ && git commit -m "Update (`date '+%F %T %Z'`) [ci skip]"
+      - cd src/_site/ && git push origin master
+      - git add src/_site/
+      - git commit -m "Update _site (`date '+%F %T %Z'`) [ci skip]"
+      - git push origin hakyll
