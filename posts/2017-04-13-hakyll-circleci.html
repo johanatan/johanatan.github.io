@@ -37,7 +37,7 @@
 </div>
 
 <h2 id="motivation">Motivation</h2>
-<p>After fighting with Jekyll for a few days, I decided to seek out alternatives. One great suggestion I received was Hakyll (which I had not known about until that time). So naturally I searched the web for examples of using Hakyll with GitHub Pages (as I wasn’t keen to try other blog providers and very much like the simplicity of GitHub Pages’ model).</p>
+<p>After fighting with Jekyll for a few days, I decided to seek out alternatives. One great suggestion I received (from @<a href="https://twitter.com/davenpcm">davenpcm</a>) was Hakyll (which I had not known about until that time). So naturally I searched the web for examples of using Hakyll with GitHub Pages (as I wasn’t keen to try other blog providers and very much like the simplicity of GitHub Pages’ model).</p>
 <p>After assembling my solution from a hodge podge of other guides (&amp; after attempting to follow <a href="https://www.stackbuilders.com/news/dr-hakyll-create-a-github-page-with-hakyll-and-circleci">one</a> of them to the letter [with a minor exception being that Hakyll’s default mode of compilation these days seems to utilize Stack rather than, as the guide expected, Cabal (which is perfectly fine to me as it does seem like the nicer tool)]), I decided to share it as others attempting to go down this road could certainly benefit from the reduction.</p>
 <h2 id="enable-github-pages">Enable GitHub Pages</h2>
 <p>The straightforward guide at <a href="https://pages.github.com/">GitHub</a> should be sufficient to get a GitHub Page for either your site or your organization up and running. My example below will pertain to a user/organization but it can be easily modified to serve a project site by substituting <code>gh-pages</code> for any appearance of <code>master</code> (in the context of a reference to a branch).</p>
@@ -78,7 +78,9 @@ _cache/</code></pre>
 <li><a href="https://github.com/begriffs/haskell-circle-example/blob/master/circle.yml">haskell-circle-example</a></li>
 <li><a href="https://gist.github.com/dbp/bef96402ea07001dfed2">Haskell project with Stack on CircleCI</a></li>
 </ul>
-<p>A link to the full source code for this site is provided at the bottom of this (and every other) page on the site.</p>
+<h2 id="concluding-thoughts">Concluding Thoughts</h2>
+<p>So, there we have it: a Hakyll-generated, continuously-deployed static site elevated to [essentially] first-class status on the GitHub Pages platform (with the exception being that CircleCI does our building behind the scenes rather than GitHub itself [which in practice is inconsequential]). Along with this comes all of the niceties that people love about hosting on GitHub Pages with the primary one being: edit on any device, from any location directly in GitHub and have the site automatically updated within a handful of minutes (for my first few edits this has typically been in the range of 2-3 minutes).</p>
+<p>A link to the full source code for this site is provided at the bottom of this (and every other) page on the site. Enjoy!</p>
 
 
             <div style="clear: both"></div>
