@@ -15,8 +15,8 @@ After assembling my solution from a hodge podge of other guides (& after
 attempting to follow [one](https://www.stackbuilders.com/news/dr-hakyll-create-a-github-page-with-hakyll-and-circleci)
 of them to the letter [with a minor exception being
 that Hakyll's default mode of compilation these days seems to utilize Stack
-rather than Cabal (which is perfectly fine to me as it does seem like the
-nicer tool) which the guide expected]), I decided to share it as others
+rather than, as the guide expected, Cabal (which is perfectly fine to me as it does seem like the
+nicer tool)]), I decided to share it as others
 attempting to go down this road could certainly benefit from the reduction.
 
 ## Enable GitHub Pages ##
