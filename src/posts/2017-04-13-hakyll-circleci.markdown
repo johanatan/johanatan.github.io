@@ -6,7 +6,8 @@ description: Setting up a Hakyll blog on GitHub Pages with Stack and CircleCI
 ## Motivation ##
 
 After fighting with Jekyll for a few days, I decided to seek out alternatives.
-One great suggestion I received was Hakyll (which I had not known about until
+One great suggestion I received (from @[davenpcm](https://twitter.com/davenpcm))
+was Hakyll (which I had not known about until
 that time). So naturally I searched the web for examples of using Hakyll with
 GitHub Pages (as I wasn't keen to try other blog providers and very much like the
 simplicity of GitHub Pages' model).
