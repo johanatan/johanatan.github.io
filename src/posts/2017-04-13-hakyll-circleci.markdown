@@ -99,5 +99,16 @@ two examples:
 * [haskell-circle-example](https://github.com/begriffs/haskell-circle-example/blob/master/circle.yml)
 * [Haskell project with Stack on CircleCI](https://gist.github.com/dbp/bef96402ea07001dfed2)
 
+## Concluding Thoughts ##
+
+So, there we have it: a Hakyll-generated, continuously-deployed static site elevated
+to [essentially] first-class status on the GitHub Pages platform (with the exception
+being that CircleCI does our building behind the scenes rather than GitHub itself
+[which in practice is inconsequential]). Along with this comes all of the niceties
+that people love about hosting on GitHub Pages with the primary one being: edit
+on any device, from any location directly in GitHub and have the site automatically
+updated within a handful of minutes (for my first few edits this has typically been
+in the range of 2-3 minutes).
+
 A link to the full source code for this site is provided at the bottom of this (and every other)
-page on the site.
+page on the site. Enjoy!
