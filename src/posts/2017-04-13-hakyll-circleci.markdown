@@ -99,5 +99,5 @@ two examples:
 * [haskell-circle-example](https://github.com/begriffs/haskell-circle-example/blob/master/circle.yml)
 * [Haskell project with Stack on CircleCI](https://gist.github.com/dbp/bef96402ea07001dfed2)
 
-The full source code for this site is available at the bottom of this (and every) other
+A link to the full source code for this site is provided at the bottom of this (and every other)
 page on the site.
