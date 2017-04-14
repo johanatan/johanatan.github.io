@@ -31,4 +31,5 @@ deployment:
       - cd src/ && make build && cp -a _site/. ..
       - git status && git add -A .
       - git commit -m "Update (`date '+%F %T %Z'`) [ci skip]"
+      - git fetch && git rebase
       - git push
