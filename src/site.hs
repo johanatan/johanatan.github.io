@@ -14,7 +14,7 @@ defContext = fieldContext "title" `mappend` defaultContext
 
 main :: IO ()
 main = hakyll $ do
-    match "images/*" $ do
+    match ((.||.) "images/*" "resources/*") $ do
         route   idRoute
         compile copyFileCompiler
 
