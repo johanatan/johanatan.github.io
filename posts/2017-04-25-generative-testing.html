@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>Jonathan Leonard - Generative Testing</title>
+
+        <!-- Stylesheets. -->
+        <link rel="stylesheet" type="text/css" href="../style.css" />
+
+        <!-- RSS. -->
+        <link rel="alternate" type="application/rss+xml" title="Jonathan Leonard - Software Developer Extraordinaire" href="http://johanatan.github.io/rss.xml" />
+
+        <!-- Metadata. -->
+        <meta name="keywords" content="Jonathan Leonard,blog,programming,coding,haskell,clojure,clojurescript,function,personal,homepage" />
+        <meta name="description" content="Personal home page and blog of Jonathan Leonard." />
+    </head>
+    <body>
+        <div id="navigation">
+            <h1>B&lambda;og</h1>
+            <a href="../">Home</a>
+            <a href="../posts.html">Archive</a>
+            <a href="../contact.html">Contact</a>
+            <!-- <a href="/cv.html">CV</a> -->
+            <h1>Links</h1>
+            <a target="_blank" href="http://github.com/johanatan">GitHub</a>
+            <a target="_blank" href="http://twitter.com/johanatan">Twitter</a>
+        </div>
+        <div id="content">
+            <h1>Generative Testing</h1>
+
+            
+<div class="info">
+    Posted on April 25, 2017
+    
+</div>
+
+<p>In this post, we’re going to walk through building a generator for valid GraphQL schemas specified in <a href="http://graphql.org/learn/schema/#type-language" target="_blank">GraphQL Shema Language</a> (sans <em>Arguments</em>). We will take a bottom-up approach starting with primitive generators, composing these into higher-level generators, and those into yet higher-level generators, and so on (à la <em>Stratified Design</em><a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>), building our way up to the final goal: a single simple generator that provides a unique valid GraphQL schema each time it is sampled. Along the way, we will pause to make sure that each primitive or composition of primitives produces correct values.</p>
+<p><a href="../resources/generators.cljs">Download Full Source</a></p>
+<p>First, let’s require test.check.</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="kw">require</span> '[clojure.<span class="kw">test</span>.check.generators <span class="at">:as</span> gen <span class="at">:include-macros</span> true])
+true</code></pre></div>
+<p>Now we can begin defining our primitive generators. For the typenames for our object types let’s use the capital letters: A-Z. <code>gen/elements</code> takes a collection of values and produces a generator that randomly chooses an element from the collection:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="bu">def</span><span class="fu"> a-to-z-gen </span>(gen/elements (<span class="kw">map</span> <span class="kw">char</span> (<span class="kw">range</span> <span class="dv">65</span> (<span class="kw">+</span> <span class="dv">65</span> <span class="dv">26</span>)))))
+<span class="va">#'</span>cljs.user/a-to-z-gen</code></pre></div>
+<p>To convince ourselves that this is working, let’s try sampling a few items using the function <code>gen/sample</code>. <code>gen/sample</code> takes two arguments: a generator and a number of samples to generate. (There is also a single-arity version which generates 10 samples by default).</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (gen/sample a-to-z-gen <span class="dv">5</span>)
+(<span class="st">&quot;K&quot;</span> <span class="st">&quot;M&quot;</span> <span class="st">&quot;W&quot;</span> <span class="st">&quot;G&quot;</span> <span class="st">&quot;S&quot;</span>)</code></pre></div>
+<p>Now that we can generate individual typenames for our objects, let’s build a generator that will produce a set of typenames given the first generator. Each of these sets will eventually specify the names of the types comprising an individual schema.</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="bu">def</span><span class="fu"> entity-set-gen </span>(gen/set a-to-z-gen {<span class="at">:min-elements</span> <span class="dv">8</span> <span class="at">:max-elements</span> <span class="dv">25</span>}))
+<span class="va">#'</span>cljs.user/entity-set-gen</code></pre></div>
+<p><code>gen/set</code> conveniently accepts <code>min-elements</code> and <code>max-elements</code> which let us put bounds on the sizes of the generated sets.</p>
+<p>Sampling a few of these gives:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (sample-one entity-set-gen)
+#{<span class="st">&quot;K&quot;</span> <span class="st">&quot;Q&quot;</span> <span class="st">&quot;L&quot;</span> <span class="st">&quot;G&quot;</span> <span class="st">&quot;J&quot;</span> <span class="st">&quot;M&quot;</span> <span class="st">&quot;S&quot;</span> <span class="st">&quot;Y&quot;</span> <span class="st">&quot;H&quot;</span> <span class="st">&quot;C&quot;</span> <span class="st">&quot;B&quot;</span> <span class="st">&quot;V&quot;</span> <span class="st">&quot;U&quot;</span> <span class="st">&quot;A&quot;</span> <span class="st">&quot;W&quot;</span>}
+cljs.user=&gt; (sample-one entity-set-gen)
+#{<span class="st">&quot;T&quot;</span> <span class="st">&quot;Q&quot;</span> <span class="st">&quot;J&quot;</span> <span class="st">&quot;M&quot;</span> <span class="st">&quot;S&quot;</span> <span class="st">&quot;Y&quot;</span> <span class="st">&quot;E&quot;</span> <span class="st">&quot;F&quot;</span> <span class="st">&quot;A&quot;</span> <span class="st">&quot;I&quot;</span> <span class="st">&quot;D&quot;</span>}
+cljs.user=&gt; (sample-one entity-set-gen)
+#{<span class="st">&quot;Q&quot;</span> <span class="st">&quot;J&quot;</span> <span class="st">&quot;S&quot;</span> <span class="st">&quot;Y&quot;</span> <span class="st">&quot;C&quot;</span> <span class="st">&quot;B&quot;</span> <span class="st">&quot;V&quot;</span> <span class="st">&quot;U&quot;</span> <span class="st">&quot;O&quot;</span> <span class="st">&quot;N&quot;</span> <span class="st">&quot;I&quot;</span>}</code></pre></div>
+<p>(<code>sample-one</code> is a helper simplifying the sampling of one element.)</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="bu">defn</span><span class="fu"> sample-one </span>[generator] (<span class="kw">first</span> (gen/sample generator <span class="dv">1</span>)))
+<span class="va">#'</span>cljs.user/sample-one</code></pre></div>
+<p>With a generator for complete sets of typenames for our schemas in hand, let us proceed to composing it with a generator of unique pairs of relations between the types/entities. Two types will be considered related if at least one of the types has a field of the type of the other type in the relation (although the relation may be bidirectional/mutual and in the case where the relation is merely unidirectional, multiple fields may participate in the relation).<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> We will consider these restrictions more closely as we proceed but, for now, it is enough to consider these two fairly obvious (basic) requirements: no relation may be repeated and relations are unordered; i.e., <code>[A B]</code> is the same as <code>[B A]</code>.</p>
+<p>First, let’s define <code>relation-gen</code>:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="bu">defn</span><span class="fu"> relation-gen </span>[entity-set]
+              (gen/list-distinct (gen/elements entity-set) {<span class="at">:num-elements</span> <span class="dv">2</span>}))
+<span class="va">#'</span>cljs.user/relation-gen</code></pre></div>
+<p>And sample it a few times:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (sample-one (relation-gen #{<span class="st">&quot;A&quot;</span> <span class="st">&quot;B&quot;</span> <span class="st">&quot;C&quot;</span> <span class="st">&quot;D&quot;</span>}))
+(<span class="st">&quot;C&quot;</span> <span class="st">&quot;D&quot;</span>)
+cljs.user=&gt; (sample-one (relation-gen #{<span class="st">&quot;A&quot;</span> <span class="st">&quot;B&quot;</span> <span class="st">&quot;C&quot;</span> <span class="st">&quot;D&quot;</span>}))
+(<span class="st">&quot;C&quot;</span> <span class="st">&quot;A&quot;</span>)
+cljs.user=&gt; (sample-one (relation-gen #{<span class="st">&quot;A&quot;</span> <span class="st">&quot;B&quot;</span> <span class="st">&quot;C&quot;</span> <span class="st">&quot;D&quot;</span>}))
+(<span class="st">&quot;A&quot;</span> <span class="st">&quot;D&quot;</span>)</code></pre></div>
+<p>And then combine it with <code>entity-set-gen</code>:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt;
+(<span class="bu">def</span><span class="fu"> entities-and-relations-gen</span>
+  (gen/let [entity-set entity-set-gen
+            relations (gen/list-distinct-by <span class="kw">set</span> (relation-gen entity-set)
+                       {<span class="at">:min-elements</span> (<span class="kw">int</span> (<span class="kw">*</span> (<span class="kw">count</span> entity-set) (<span class="kw">/</span> <span class="dv">2</span> <span class="dv">3</span>)))
+                        <span class="at">:max-elements</span> (<span class="kw">int</span> (<span class="kw">*</span> (<span class="kw">count</span> entity-set) <span class="dv">3</span>))})]
+    {<span class="at">:entities</span> entity-set <span class="at">:relations</span> relations}))
+<span class="va">#'</span>cljs.user/entities-and-relations-gen</code></pre></div>
+<p>The above form utilizes <code>gen/let</code> which has equivalent semantics to built-in <code>let</code> except that generators are required on the right-hand side of the binding vector and the symbols on the left are bound to <em>values</em> generated by those generators. Also of note here is the use of <code>list-distinct-by</code> which is just like <code>list-distinct</code> except allowing a transform to be specified for use in the equality checks (which in our case is <code>set</code>).</p>
+<p>Let’s take a sample from this latest generator:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (pprint (sample-one entities-and-relations-gen))
+{<span class="at">:entities</span> #{<span class="st">&quot;T&quot;</span> <span class="st">&quot;L&quot;</span> <span class="st">&quot;Y&quot;</span> <span class="st">&quot;F&quot;</span> <span class="st">&quot;P&quot;</span> <span class="st">&quot;O&quot;</span> <span class="st">&quot;N&quot;</span> <span class="st">&quot;W&quot;</span> <span class="st">&quot;D&quot;</span>},
+ <span class="at">:relations</span>
+ ((<span class="st">&quot;W&quot;</span> <span class="st">&quot;T&quot;</span>)
+  (<span class="st">&quot;Y&quot;</span> <span class="st">&quot;N&quot;</span>)
+  (<span class="st">&quot;P&quot;</span> <span class="st">&quot;O&quot;</span>)
+  (<span class="st">&quot;L&quot;</span> <span class="st">&quot;T&quot;</span>) 
+  (<span class="st">&quot;F&quot;</span> <span class="st">&quot;N&quot;</span>) 
+  (<span class="st">&quot;T&quot;</span> <span class="st">&quot;N&quot;</span>) 
+  (<span class="st">&quot;O&quot;</span> <span class="st">&quot;F&quot;</span>) 
+  (<span class="st">&quot;Y&quot;</span> <span class="st">&quot;L&quot;</span>) 
+  (<span class="st">&quot;D&quot;</span> <span class="st">&quot;T&quot;</span>))}</code></pre></div>
+<p>Each side of a relation may have a multiplicity of zero, one or many so let’s define a data structure representing these:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="bu">def</span><span class="fu"> multiplicities </span>#{<span class="at">:zero</span> <span class="at">:one</span> <span class="at">:many</span>})
+<span class="va">#'</span>cljs.user/multiplicities </code></pre></div>
+<p>And a generator for them:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="bu">def</span><span class="fu"> multiplicity-gen </span>(gen/elements multiplicities))
+<span class="va">#'</span>cljs.user/multiplicity-gen</code></pre></div>
+<p>Also we will require a non-zero multiplicity generator (i.e., either <code>:one</code> or <code>:many</code>):</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="kw">require</span> '[clojure.<span class="kw">set</span>])
+nil
+cljs.user=&gt; (<span class="bu">def</span><span class="fu"> non-zero-mult-gen </span>(gen/elements (clojure.set/difference multiplicities #{<span class="at">:zero</span>})))
+<span class="va">#'</span>cljs.user/non-zero-mult-gen</code></pre></div>
+<p>These work as expected:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="kw">assert</span> (<span class="kw">every?</span> #(multiplicities %) (gen/sample multiplicity-gen <span class="dv">10000</span>)))
+nil
+cljs.user=&gt; (<span class="kw">assert</span> (<span class="kw">every?</span> #(#{<span class="at">:one</span> <span class="at">:many</span>} %) (gen/sample non-zero-mult-gen <span class="dv">10000</span>)))
+nil</code></pre></div>
+<p>Now we will define a <code>Cardinality</code> as two <code>Multiplicities</code> (one for each side of a relation):</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="bu">defrecord</span><span class="fu"> Multiplicity </span>[entity field multiplicity required?])
+cljs.user/Multiplicity
+cljs.user=&gt; (<span class="bu">defrecord</span><span class="fu"> Cardinality </span>[<span class="kw">left</span> <span class="kw">right</span>])
+cljs.user/Cardinality</code></pre></div>
+<p>Here is a wrapper around <code>goog.string/format</code> which we will use for string building:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="kw">require</span> '[goog.string.<span class="kw">format</span>])
+true
+cljs.user=&gt; 
+(<span class="bu">defn</span><span class="fu"> format</span>
+  <span class="st">&quot;Formats a string using goog.string.format.&quot;</span>
+  [fmt &amp; args]
+  (<span class="kw">apply</span> goog.string/format fmt args))
+<span class="va">#'</span>cljs.user/format</code></pre></div>
+<p>And a function that produces generators of <code>Cardinalities</code> from relations:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="kw">require</span> '[clojure.string <span class="at">:refer</span> [lower-case]])
+nil
+cljs.user=&gt; 
+(<span class="bu">defn</span><span class="fu"> relation-&gt;cardinalities-gen </span>[[<span class="kw">left</span> <span class="kw">right</span>]]
+  (gen/let [lmult multiplicity-gen
+            repeats (gen/choose <span class="dv">1</span> <span class="dv">5</span>)]
+    (<span class="kw">let</span> [create-card
+          #(Cardinality.
+            (Multiplicity. <span class="kw">left</span> (lower-case <span class="kw">right</span>)
+                           lmult (sample-one gen/boolean))
+            (Multiplicity. <span class="kw">right</span> %<span class="dv">1</span> (sample-one non-zero-mult-gen)
+                           (sample-one gen/boolean)))]
+      (<span class="kw">condp</span> <span class="kw">=</span> lmult
+        <span class="at">:zero</span> (<span class="kw">map</span>
+               create-card
+               (<span class="kw">map</span> #(<span class="kw">format</span> <span class="st">&quot;%s%s&quot;</span> (lower-case <span class="kw">left</span>) %<span class="dv">1</span>) (<span class="kw">range</span> repeats)))
+        [(create-card (lower-case <span class="kw">left</span>))]))))
+<span class="va">#'</span>cljs.user/relation-&gt;cardinalities-gen</code></pre></div>
+<p>Let’s break that down a bit. First off, we generate a multiplicity for the left side of the relation and a number of repeats (which will only be used if the left side has a <code>:zero</code> participation). Then we define a simple helper function for constructing a cardinality: <code>create-card</code>. Notice that the field names are merely the destination type names, lower-cased, and optionally with a unique integer index postpended (for multiple-link relations only). And the right side’s multiplicity comes from the <code>non-zero-mult-gen</code> (which simplifies downstream logic by reducing the number of cases we need to consider). Then, in both branches of the <code>condp</code> (i.e., when left multiplicity is zero or non-zero), a sequence of <code>Cardinality</code> instances is generated.</p>
+<p>Next up we have a fairly straightforward generator to combine our entities, relations &amp; cardinalities into a single structure:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; 
+(<span class="bu">def</span><span class="fu"> entities-and-cardinalities-gen</span>
+  (gen/let [{<span class="at">:keys</span> [entities relations]} entities-and-relations-gen
+            cardinalities (<span class="kw">apply</span> gen/tuple (<span class="kw">map</span> relation-&gt;cardinalities-gen relations))]
+    {<span class="at">:entities</span> entities <span class="at">:relations</span> relations <span class="at">:cardinalities</span> (flatten cardinalities)}))
+<span class="va">#'</span>cljs.user/entities-and-cardinalities-gen </code></pre></div>
+<p>And here’s an abbreviated sample of its output:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">{<span class="at">:entities</span>
+ #{<span class="st">&quot;T&quot;</span> <span class="st">&quot;Q&quot;</span> <span class="st">&quot;L&quot;</span> <span class="st">&quot;G&quot;</span> <span class="st">&quot;J&quot;</span> <span class="st">&quot;M&quot;</span> <span class="st">&quot;S&quot;</span> <span class="st">&quot;Z&quot;</span> <span class="st">&quot;H&quot;</span> <span class="st">&quot;R&quot;</span> <span class="st">&quot;C&quot;</span> <span class="st">&quot;F&quot;</span> <span class="st">&quot;B&quot;</span> <span class="st">&quot;V&quot;</span> <span class="st">&quot;O&quot;</span> <span class="st">&quot;X&quot;</span> <span class="st">&quot;N&quot;</span>
+   <span class="st">&quot;A&quot;</span> <span class="st">&quot;I&quot;</span> <span class="st">&quot;W&quot;</span> <span class="st">&quot;D&quot;</span>},
+ <span class="at">:relations</span>
+ ((<span class="st">&quot;J&quot;</span> <span class="st">&quot;B&quot;</span>) (<span class="st">&quot;N&quot;</span> <span class="st">&quot;I&quot;</span>) (<span class="st">&quot;Z&quot;</span> <span class="st">&quot;G&quot;</span>) (<span class="st">&quot;H&quot;</span> <span class="st">&quot;R&quot;</span>) (<span class="st">&quot;Z&quot;</span> <span class="st">&quot;V&quot;</span>) (<span class="st">&quot;G&quot;</span> <span class="st">&quot;V&quot;</span>) ...)
+ <span class="at">:cardinalities</span>
+  ({<span class="at">:left</span>
+   {<span class="at">:entity</span> <span class="st">&quot;J&quot;</span>, <span class="at">:field</span> <span class="st">&quot;b&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:zero</span>, <span class="at">:required</span>? true},
+   <span class="at">:right</span>
+   {<span class="at">:entity</span> <span class="st">&quot;B&quot;</span>, <span class="at">:field</span> <span class="st">&quot;j0&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:many</span>, <span class="at">:required</span>? true}}
+  {<span class="at">:left</span>
+   {<span class="at">:entity</span> <span class="st">&quot;N&quot;</span>, <span class="at">:field</span> <span class="st">&quot;i&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:zero</span>, <span class="at">:required</span>? false},
+   <span class="at">:right</span>
+   {<span class="at">:entity</span> <span class="st">&quot;I&quot;</span>, <span class="at">:field</span> <span class="st">&quot;n0&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:one</span>, <span class="at">:required</span>? false}}
+  {<span class="at">:left</span>
+   {<span class="at">:entity</span> <span class="st">&quot;Z&quot;</span>, <span class="at">:field</span> <span class="st">&quot;g&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:zero</span>, <span class="at">:required</span>? false},
+   <span class="at">:right</span>
+   {<span class="at">:entity</span> <span class="st">&quot;G&quot;</span>, <span class="at">:field</span> <span class="st">&quot;z0&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:one</span>, <span class="at">:required</span>? true}}
+   {<span class="at">:left</span>
+   {<span class="at">:entity</span> <span class="st">&quot;J&quot;</span>, <span class="at">:field</span> <span class="st">&quot;l&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:one</span>, <span class="at">:required</span>? true},
+   <span class="at">:right</span>
+   {<span class="at">:entity</span> <span class="st">&quot;L&quot;</span>, <span class="at">:field</span> <span class="st">&quot;j&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:many</span>, <span class="at">:required</span>? true}}
+  {<span class="at">:left</span>
+   {<span class="at">:entity</span> <span class="st">&quot;H&quot;</span>, <span class="at">:field</span> <span class="st">&quot;a&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:many</span>, <span class="at">:required</span>? true},
+   <span class="at">:right</span>
+   {<span class="at">:entity</span> <span class="st">&quot;A&quot;</span>, <span class="at">:field</span> <span class="st">&quot;h&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:one</span>, <span class="at">:required</span>? false}}
+   ...)}</code></pre></div>
+<p>Now let’s define a record to represent the description of a field in a GraphQL entity specification:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="bu">defrecord</span><span class="fu"> FieldDescriptor </span>[field <span class="kw">type</span> multiplicity required?])
+cljs.user/FieldDescriptor</code></pre></div>
+<p>And a generator for a plain (i.e., scalar or non-object/non-reference) field descriptor:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="kw">require</span> '[camel-snake-kebab.core <span class="at">:refer</span> [-&gt;camelCase -&gt;PascalCase]])
+true
+cljs.user=&gt; (<span class="bu">def</span><span class="fu"> scalar-types </span>#{<span class="st">&quot;Boolean&quot;</span> <span class="st">&quot;String&quot;</span> <span class="st">&quot;Float&quot;</span> <span class="st">&quot;Timestamp&quot;</span> <span class="st">&quot;Int&quot;</span>})
+<span class="va">#'</span>cljs.user/scalar-types
+cljs.user=&gt; 
+(<span class="bu">defn</span><span class="fu"> field-gen </span>[prefix]
+  (<span class="kw">let</span> [nonempty-char-alpha-gen
+        (gen/not-empty (gen/fmap clojure.string/join
+                                 (gen/vector gen/char-alpha)))]
+    (gen/fmap (<span class="kw">partial</span> <span class="kw">apply</span> -&gt;FieldDescriptor)
+              (gen/tuple (gen/fmap #(<span class="kw">format</span> <span class="st">&quot;%s%s&quot;</span> prefix (-&gt;PascalCase %<span class="dv">1</span>))
+                                  nonempty-char-alpha-gen)
+                        (gen/elements scalar-types)
+                        non-zero-mult-gen
+                        gen/boolean))))
+<span class="va">#'</span>cljs.user/field-gen </code></pre></div>
+<p>And take a few samples<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (sample-one (field-gen <span class="st">&quot;test&quot;</span>))
+#cljs.user.FieldDescriptor{<span class="at">:field</span> <span class="st">&quot;testQk&quot;</span>, <span class="at">:type</span> <span class="st">&quot;Boolean&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:many</span>, <span class="at">:required</span>? true}
+cljs.user=&gt; (sample-one (field-gen <span class="st">&quot;test&quot;</span>))
+#cljs.user.FieldDescriptor{<span class="at">:field</span> <span class="st">&quot;testH&quot;</span>, <span class="at">:type</span> <span class="st">&quot;Timestamp&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:one</span>, <span class="at">:required</span>? true}
+cljs.user=&gt; (sample-one (field-gen <span class="st">&quot;test&quot;</span>))
+#cljs.user.FieldDescriptor{<span class="at">:field</span> <span class="st">&quot;testE&quot;</span>, <span class="at">:type</span> <span class="st">&quot;Int&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:one</span>, <span class="at">:required</span>? false}</code></pre></div>
+<p>Next we will define a generator for object fields:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; 
+(<span class="bu">defn</span><span class="fu"> cardinality-&gt;obj-field-descriptor </span>[entity cardinality]
+  (<span class="kw">let</span> [grouped (group-by #(<span class="kw">-&gt;</span> (%<span class="dv">1</span> <span class="dv">1</span>) <span class="at">:entity</span>) cardinality)
+        this (<span class="kw">first</span> (<span class="kw">vals</span> (<span class="kw">into</span> {} (grouped entity))))
+        other-entity (<span class="at">:entity</span> ((((<span class="kw">first</span> (<span class="kw">dissoc</span> grouped entity)) <span class="dv">1</span>) <span class="dv">0</span>) <span class="dv">1</span>))]
+    (<span class="kw">if</span> (<span class="kw">not=</span> <span class="at">:zero</span> (<span class="at">:multiplicity</span> this))
+      (FieldDescriptor. (<span class="at">:field</span> this) other-entity (<span class="at">:multiplicity</span> this) (<span class="at">:required</span>? this)))))
+<span class="va">#'</span>cljs.user/cardinality-&gt;obj-field-descriptor</code></pre></div>
+<p>And then combine them together to describe complete entities:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; 
+(<span class="bu">defn</span><span class="fu"> entity-&gt;cardinalities </span>[entity cardinalities]
+  (<span class="kw">filter</span> #(<span class="kw">or</span> (<span class="kw">=</span> entity (<span class="kw">-&gt;</span> %<span class="dv">1</span> <span class="at">:left</span> <span class="at">:entity</span>)) (<span class="kw">=</span> entity (<span class="kw">-&gt;</span> %<span class="dv">1</span> <span class="at">:right</span> <span class="at">:entity</span>))) cardinalities))
+<span class="va">#'</span>cljs.user/entity-&gt;cardinalities
+cljs.user=&gt; 
+(<span class="bu">defn</span><span class="fu"> entity-&gt;descriptors-gen </span>[entity cardinalities]
+  (<span class="kw">let</span> [filtered (entity-&gt;cardinalities entity cardinalities) <span class="co">; Note: O(n^2), can be optimized</span>
+        obj-fields (<span class="kw">remove</span> <span class="kw">nil?</span> (<span class="kw">map</span> (<span class="kw">partial</span> cardinality-&gt;obj-field-descriptor entity) filtered))
+        default-field (FieldDescriptor. <span class="st">&quot;id&quot;</span> <span class="st">&quot;ID&quot;</span> <span class="at">:one</span> true)]
+    (gen/let [num-fields (gen/choose <span class="dv">2</span> <span class="dv">8</span>)
+              plain-fields (<span class="kw">apply</span> gen/tuple (<span class="kw">repeat</span> num-fields (field-gen (-&gt;camelCase entity))))]
+      {<span class="at">:entity</span> entity <span class="at">:fields</span> (<span class="kw">concat</span> [default-field] plain-fields obj-fields)})))
+<span class="va">#'</span>cljs.user/entity-&gt;descriptors-gen
+cljs.user=&gt; 
+(<span class="bu">def</span><span class="fu"> entity-descriptors-gen</span>
+  (gen/let [{<span class="at">:keys</span> [entities relations cardinalities]} entities-and-cardinalities-gen
+            entity-descriptors (<span class="kw">apply</span> gen/tuple (<span class="kw">map</span> #(entity-&gt;descriptors-gen %<span class="dv">1</span> cardinalities) entities))]
+    entity-descriptors))
+<span class="va">#'</span>cljs.user/entity-descriptors-gen</code></pre></div>
+<p>And sampling one complete entity gives:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (pprint (<span class="kw">-&gt;</span> (sample-one entity-descriptors-gen) <span class="kw">first</span>))
+{<span class="at">:entity</span> <span class="st">&quot;K&quot;</span>,
+ <span class="at">:fields</span>
+ ({<span class="at">:field</span> <span class="st">&quot;id&quot;</span>, <span class="at">:type</span> <span class="st">&quot;ID&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:one</span>, <span class="at">:required</span>? true}
+  {<span class="at">:field</span> <span class="st">&quot;kB&quot;</span>, <span class="at">:type</span> <span class="st">&quot;Int&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:many</span>, <span class="at">:required</span>? false}
+  {<span class="at">:field</span> <span class="st">&quot;kO&quot;</span>, <span class="at">:type</span> <span class="st">&quot;String&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:one</span>, <span class="at">:required</span>? true}
+  {<span class="at">:field</span> <span class="st">&quot;u&quot;</span>, <span class="at">:type</span> <span class="st">&quot;U&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:many</span>, <span class="at">:required</span>? true}
+  {<span class="at">:field</span> <span class="st">&quot;r&quot;</span>, <span class="at">:type</span> <span class="st">&quot;R&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:one</span>, <span class="at">:required</span>? true})}</code></pre></div>
+<p>Now all that is left is to emit the GraphQL Schema Language given an entity description record:</p>
+<pre><code>cljs.user=&gt; 
+(defn emit-field [fd]
+  (if (#{:one :many} (:multiplicity fd))
+    (format &quot;%s: %s%s%s%s&quot;
+            (:field fd)
+            (if (= (:multiplicity fd) :many) &quot;[&quot; &quot;&quot;)
+            (:type fd)
+            (if (= (:multiplicity fd) :many) &quot;]&quot; &quot;&quot;)
+            (if (:required? fd) &quot;!&quot; &quot;&quot;)) nil))
+#'cljs.user/emit-field
+cljs.user=&gt; 
+(defn emit-type [{:keys [entity fields]}]
+  (format &quot;type %s {\n%s\n}&quot;
+          entity
+          (clojure.string/join &quot;\n&quot; (remove nil? (map emit-field fields)))))
+#'cljs.user/emit-type</code></pre>
+<p>And join a sequence of them together into the full schema:</p>
+<pre><code>cljs.user=&gt; 
+(def schema-str-gen
+  (gen/let [entity-descriptors entity-descriptors-gen]
+    (clojure.string/join &quot;\n\n&quot; (map emit-type entity-descriptors))))
+#'cljs.user/schema-str-gen</code></pre>
+<p>And the final product:</p>
+<pre><code>cljs.user=&gt; (print (sample-one schema-str-gen))
+type H {
+  id: ID!
+  hX: [Boolean]!
+  hY: Int!
+  hL: Boolean
+  hO: [String]!
+  x: X
+  r: R
+  m: [M]
+  y: [Y]!
+}
+
+type Y {
+  id: ID!
+  yUk: [Boolean]!
+  yI: [Timestamp]
+  yA: Int!
+  q: Q
+  h: H
+}
+...</code></pre>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><a href="ftp://publications.ai.mit.edu/ai-publications/pdf/AIM-986.pdf" target="_blank">Lisp: A Language for Stratified Design</a><a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>These restrictions are placed on us by the library this was originally designed to test, <a href="https://johanatan.github.io/speako/" target="_blah">speako</a>, which does not support non-standard extensions to the, as of yet informally specified, GraphQL Schema Language. Yet even with these restrictions speako is quite usuable/flexible in practice and there are straightforward workarounds for obtaining multiple bidirectional relations between two entities if one absolutely requires them. Arguably the benefit of keeping the GQL Schema Language syntax simpler (and more portable to other GQL backends) is well worth the tradeoff of slightly more restrictions on the nature of relations.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p><code>field-gen</code> takes a prefix so that we can ensure that each set of fields generated for our entities is unique (which is a requirement of speako).<a href="#fnref3">↩</a></p></li>
+</ol>
+</div>
+
+<div id="disqus_thread"></div>
+<script>
+ /**
+  *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+  *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables*/
+
+    var disqus_config = function () {
+    //this.page.url = /posts/2017-04-25-generative-testing.html;  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "posts/2017-04-25-generative-testing.md"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+
+ (function() { // DON'T EDIT BELOW THIS LINE
+     var d = document, s = d.createElement('script');
+     s.src = 'https://jonathan-leonard.disqus.com/embed.js';
+     s.setAttribute('data-timestamp', +new Date());
+     (d.head || d.body).appendChild(s);
+ })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+
+
+            <div style="clear: both"></div>
+
+            <div id="footer">
+                Site proudly generated by
+                <a target="_blank" href="http://jaspervdj.be/hakyll">Hakyll</a>.
+                The source code of this website is
+                <a target="_blank" href="http://github.com/johanatan/johanatan.github.io">
+                    available at github</a>.
+            </div>
+        </div>
+
+        <script>
+         (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+             (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                                  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+         })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+         ga('create', 'UA-96891566-1', 'auto');
+         ga('send', 'pageview');
+
+        </script>
+    </body>
+</html>
