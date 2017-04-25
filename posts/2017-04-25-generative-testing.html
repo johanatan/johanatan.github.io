@@ -248,31 +248,31 @@ cljs.user=&gt;
   {<span class="at">:field</span> <span class="st">&quot;u&quot;</span>, <span class="at">:type</span> <span class="st">&quot;U&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:many</span>, <span class="at">:required</span>? true}
   {<span class="at">:field</span> <span class="st">&quot;r&quot;</span>, <span class="at">:type</span> <span class="st">&quot;R&quot;</span>, <span class="at">:multiplicity</span> <span class="at">:one</span>, <span class="at">:required</span>? true})}</code></pre></div>
 <p>Now all that is left is to emit the GraphQL Schema Language given an entity description record:</p>
-<pre><code>cljs.user=&gt; 
-(defn emit-field [fd]
-  (if (#{:one :many} (:multiplicity fd))
-    (format &quot;%s: %s%s%s%s&quot;
-            (:field fd)
-            (if (= (:multiplicity fd) :many) &quot;[&quot; &quot;&quot;)
-            (:type fd)
-            (if (= (:multiplicity fd) :many) &quot;]&quot; &quot;&quot;)
-            (if (:required? fd) &quot;!&quot; &quot;&quot;)) nil))
-#'cljs.user/emit-field
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; 
+(<span class="bu">defn</span><span class="fu"> emit-field </span>[fd]
+  (<span class="kw">if</span> (#{<span class="at">:one</span> <span class="at">:many</span>} (<span class="at">:multiplicity</span> fd))
+    (<span class="kw">format</span> <span class="st">&quot;%s: %s%s%s%s&quot;</span>
+            (<span class="at">:field</span> fd)
+            (<span class="kw">if</span> (<span class="kw">=</span> (<span class="at">:multiplicity</span> fd) <span class="at">:many</span>) <span class="st">&quot;[&quot;</span> <span class="st">&quot;&quot;</span>)
+            (<span class="at">:type</span> fd)
+            (<span class="kw">if</span> (<span class="kw">=</span> (<span class="at">:multiplicity</span> fd) <span class="at">:many</span>) <span class="st">&quot;]&quot;</span> <span class="st">&quot;&quot;</span>)
+            (<span class="kw">if</span> (<span class="at">:required</span>? fd) <span class="st">&quot;!&quot;</span> <span class="st">&quot;&quot;</span>)) nil))
+<span class="va">#'</span>cljs.user/emit-field
 cljs.user=&gt; 
-(defn emit-type [{:keys [entity fields]}]
-  (format &quot;type %s {\n%s\n}&quot;
+(<span class="bu">defn</span><span class="fu"> emit-type </span>[{<span class="at">:keys</span> [entity fields]}]
+  (<span class="kw">format</span> <span class="st">&quot;type %s {</span>\n<span class="st">%s</span>\n<span class="st">}&quot;</span>
           entity
-          (clojure.string/join &quot;\n&quot; (remove nil? (map emit-field fields)))))
-#'cljs.user/emit-type</code></pre>
+          (clojure.string/join <span class="st">&quot;</span>\n<span class="st">&quot;</span> (<span class="kw">remove</span> <span class="kw">nil?</span> (<span class="kw">map</span> emit-field fields)))))
+<span class="va">#'</span>cljs.user/emit-type</code></pre></div>
 <p>And join a sequence of them together into the full schema:</p>
-<pre><code>cljs.user=&gt; 
-(def schema-str-gen
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; 
+(<span class="bu">def</span><span class="fu"> schema-str-gen</span>
   (gen/let [entity-descriptors entity-descriptors-gen]
-    (clojure.string/join &quot;\n\n&quot; (map emit-type entity-descriptors))))
-#'cljs.user/schema-str-gen</code></pre>
+    (clojure.string/join <span class="st">&quot;</span>\n\n<span class="st">&quot;</span> (<span class="kw">map</span> emit-type entity-descriptors))))
+<span class="va">#'</span>cljs.user/schema-str-gen</code></pre></div>
 <p>And the final product:</p>
-<pre><code>cljs.user=&gt; (print (sample-one schema-str-gen))
-type H {
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; (<span class="kw">print</span> (sample-one schema-str-gen))
+<span class="kw">type</span> H {
   id: ID!
   hX: [Boolean]!
   hY: Int!
@@ -284,7 +284,7 @@ type H {
   y: [Y]!
 }
 
-type Y {
+<span class="kw">type</span> Y {
   id: ID!
   yUk: [Boolean]!
   yI: [Timestamp]
@@ -292,7 +292,7 @@ type Y {
   q: Q
   h: H
 }
-...</code></pre>
+...</code></pre></div>
 <div class="footnotes">
 <hr />
 <ol>
