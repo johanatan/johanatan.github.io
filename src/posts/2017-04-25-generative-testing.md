@@ -343,7 +343,7 @@ cljs.user=> (pprint (-> (sample-one entity-descriptors-gen) first))
 
 Now all that is left is to emit the GraphQL Schema Language given
 an entity description record:
-```
+```clojure
 cljs.user=> 
 (defn emit-field [fd]
   (if (#{:one :many} (:multiplicity fd))
@@ -363,7 +363,7 @@ cljs.user=>
 ```
 
 And join a sequence of them together into the full schema:
-```
+```clojure
 cljs.user=> 
 (def schema-str-gen
   (gen/let [entity-descriptors entity-descriptors-gen]
@@ -372,7 +372,7 @@ cljs.user=>
 ```
 
 And the final product:
-```
+```clojure
 cljs.user=> (print (sample-one schema-str-gen))
 type H {
   id: ID!
