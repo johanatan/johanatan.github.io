@@ -251,7 +251,7 @@ cljs.user=&gt;
 <div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">cljs.user=&gt; 
 (<span class="bu">defn</span><span class="fu"> emit-field </span>[fd]
   (<span class="kw">if</span> (#{<span class="at">:one</span> <span class="at">:many</span>} (<span class="at">:multiplicity</span> fd))
-    (<span class="kw">format</span> <span class="st">&quot;%s: %s%s%s%s&quot;</span>
+    (<span class="kw">format</span> <span class="st">&quot;  %s: %s%s%s%s&quot;</span>
             (<span class="at">:field</span> fd)
             (<span class="kw">if</span> (<span class="kw">=</span> (<span class="at">:multiplicity</span> fd) <span class="at">:many</span>) <span class="st">&quot;[&quot;</span> <span class="st">&quot;&quot;</span>)
             (<span class="at">:type</span> fd)
