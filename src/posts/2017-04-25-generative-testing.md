@@ -347,7 +347,7 @@ an entity description record:
 cljs.user=> 
 (defn emit-field [fd]
   (if (#{:one :many} (:multiplicity fd))
-    (format "%s: %s%s%s%s"
+    (format "  %s: %s%s%s%s"
             (:field fd)
             (if (= (:multiplicity fd) :many) "[" "")
             (:type fd)
